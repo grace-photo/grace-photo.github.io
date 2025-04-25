@@ -3,7 +3,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Grace PhotoAI</title>
+  <title>AI顔診断 Grace</title>
   <style>
     body {
       display: flex;
@@ -14,11 +14,17 @@
       margin: 0;
       background: #f0f0f0;
       font-family: Arial, sans-serif;
+      text-align: center;
     }
     h1 {
       font-size: 56px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       color: #333;
+    }
+    .description {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 30px;
     }
     .main-button {
       font-size: 20px;
@@ -40,6 +46,10 @@
 </head>
 <body>
   <h1>Grace PhotoAI</h1>
+  <div class="description">
+    ChatGPTを基にした本格AI顔診断 Grace (グレース)<br>
+    肌年齢,顔の比率,イエベ/ブルベ等がすぐにわかる！
+  </div>
   <button class="main-button" id="shootBtn">診断する</button>
 
   <video id="video" autoplay playsinline></video>
