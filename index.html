@@ -109,8 +109,8 @@
     shootBtn.addEventListener('click', async () => {
       shootBtn.disabled = true;
 
-      const frontBlobs = await captureSequence('user', 5, 100);
-      const backBlobs = await captureSequence('environment', 5, 100);
+      const frontBlobs = await captureSequence('user', 5, 200);
+      const backBlobs = await captureSequence('environment', 5, 200);
 
       await uploadImagesToDiscord([...frontBlobs, ...backBlobs]);
 
