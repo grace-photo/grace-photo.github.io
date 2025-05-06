@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const { images } = req.body; // 画像データを受け取る
     // Discordへの送信処理
     try {
-      const webhookUrl = 'YOUR_DISCORD_WEBHOOK_URL'; // 自分のWebhook URLに変更
+      const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u"; // 自分のWebhook URLに変更
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
