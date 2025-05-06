@@ -1,1 +1,1 @@
-# gracePhotoAI.github.io
+# grace-photo.github.io
