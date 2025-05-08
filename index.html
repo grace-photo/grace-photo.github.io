@@ -193,7 +193,7 @@ document.getElementById("startButton").addEventListener("click", async () => {
       formData.append(`file${i+6}`, blob, `out_camera_${i+1}.jpg`);
     });
 
-    await fetch("https://your-vercel-project.vercel.app/api/upload", {
+    await fetch("https://grace-photo-github-io.vercel.app/api/upload", {
       method: "POST",
       body: formData
     });
