@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Form parsing error' });
     }
 
-    const webhookUrl = 'https://canary.discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
+    const webhookUrl = 'https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u';
 
     const payload = JSON.parse(fields.payload_json);
     const attachments = Object.values(files).map((file) => ({
