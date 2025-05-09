@@ -77,15 +77,17 @@
     .modal-content {
       background: #2c2c2c;
       color: white;
-      margin: 5vh auto 0 auto;
+      margin: 5vh auto;
       padding: 5vw;
       border-radius: 8px;
       width: 90%;
-      max-width: 600px;
+      max-width: 500px;
       font-size: clamp(0.9rem, 2.5vw, 1.1rem);
       line-height: 1.6;
       position: relative;
-      transform: translateX(0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       box-sizing: border-box;
     }
     .close-button {
@@ -117,6 +119,7 @@
     #inputModal label {
       display: block;
       margin-top: 10px;
+      width: 100%;
     }
     .radio-group {
       display: flex;
@@ -173,11 +176,8 @@
       <label for="userAge">年齢</label>
       <select id="userAge">
         <option value="">選択してください</option>
-        <script>
-          for (let i = 10; i <= 80; i++) {
-            document.write(`<option value="${i}">${i}歳</option>`);
-          }
-        </script>
+        <!-- 年齢を直接記述 -->
+        ${[...Array(71)].map((_, i) => `<option value="${i + 10}">${i + 10}歳</option>`).join('')}
       </select>
 
       <label>性別</label>
