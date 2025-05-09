@@ -77,7 +77,7 @@
     .modal-content {
       background: #2c2c2c;
       color: white;
-      margin: 5vh auto;
+      margin: 5vh auto 0 auto;
       padding: 5vw;
       border-radius: 8px;
       width: 90%;
@@ -85,6 +85,8 @@
       font-size: clamp(0.9rem, 2.5vw, 1.1rem);
       line-height: 1.6;
       position: relative;
+      transform: translateX(0);
+      box-sizing: border-box;
     }
     .close-button {
       font-size: 1.2rem;
@@ -159,7 +161,7 @@
     </div>
   </div>
 
-    <!-- 入力モーダル -->
+  <!-- 入力モーダル -->
   <div id="inputModal" class="modal">
     <div class="modal-content">
       <button class="close-button" id="closeInputModal">CLOSE</button>
@@ -171,7 +173,6 @@
       <label for="userAge">年齢</label>
       <select id="userAge">
         <option value="">選択してください</option>
-        <!-- 10歳〜80歳 -->
         <script>
           for (let i = 10; i <= 80; i++) {
             document.write(`<option value="${i}">${i}歳</option>`);
