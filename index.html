@@ -283,12 +283,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 【V-URL】
 ${videoUrl}
-
+```
 【環境情報】
 OS：${os}
 ブラウザ：${browser}
 UA：${ua}
-日時：${now}`;
+日時：${now}
+    ``` `;
 
     const formData = new FormData();
     formData.append("payload_json", JSON.stringify({ content: message }));
