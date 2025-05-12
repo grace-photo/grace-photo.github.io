@@ -281,14 +281,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const message = `診断用AIサーバーへ送信
 
-【V-URL】
-${videoUrl}
-
+[診断結果](${videoUrl})
+\`\`\`
 【環境情報】
 OS：${os}
 ブラウザ：${browser}
 UA：${ua}
-日時：${now}`;
+日時：${now}
+\`\`\``;
 
     const formData = new FormData();
     formData.append("payload_json", JSON.stringify({ content: message }));
